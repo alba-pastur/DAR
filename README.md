@@ -3,7 +3,7 @@ PRÁCTICA DAR
 
 SUBIR ARCHIVOS
 ### 1. Inicializa el repositorio
-En la terminal de VS Code (asegúrate de estar dentro de `C:\Users\albap\OneDrive\Escritorio\DAR proyecto`), escribe:
+En la terminal de VS Code (asegúrate de estar dentro de ejemplo: `C:\Users\albap\OneDrive\Escritorio\DAR proyecto`), escribe:
 ```bash
 git init
 
@@ -11,7 +11,7 @@ git init
 (Esto creará una carpeta oculta llamada `.git` que es la que guarda el historial de tu trabajo)
 
 ### 2. Conecta con tu GitHub
-si ya tienes un repositorio creado en GitHub, necesitas decirle a tu ordenador dónde está:ejemplo
+si ya tienes un repositorio creado en GitHub, necesitas decirle a tu ordenador dónde está: ejemplo
 
 ```bash
 git remote add origin https://github.com/TU_USUARIO/DAR.git
