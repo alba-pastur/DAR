@@ -1,0 +1,20 @@
+from graphviz import Digraph
+
+# Crear el diagrama de secuencia
+s = Digraph('Diagrama_Secuencia', filename='secuencia_chat.gv', format='png')
+
+# Definir las líneas de vida (Cliente y Servidor)
+s.attr('node', shape='rectangle')
+s.node('C', 'Cliente')
+s.node('S', 'Servidor')
+
+# Flujo de mensajes (Basado en vuestro ABNF)
+s.edge('C', 'S', label='ROOM_JOIN #Sala1')
+s.edge('S', 'C', label='RES_OK ROOM_JOIN')
+s.edge('S', 'C', label='EVT_ROOM_UPDATE #Sala1 JOIN usuario123 (Broadcast)')
+s.edge('C', 'S', label='MSG_SEND #Sala1 Hola!')
+s.edge('S', 'C', label='RES_OK MSG_SEND')
+s.edge('S', 'C', label='EVT_MSG #Sala1 usuario123 Hola! (Broadcast)')
+
+# Guardar la imagen
+s.render(view=True)
