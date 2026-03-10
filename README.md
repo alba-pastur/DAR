@@ -1,8 +1,7 @@
 # DAR
 PRÁCTICA DAR
 
-Inicializar un proyecto nuevo desde cero
-
+# Inicializar un proyecto nuevo desde cero
 # 1. Entra en la carpeta: 
 cd "ruta\de\tu\carpeta"
 # 2. Inicializa: git init
