@@ -1,33 +1,49 @@
 # DAR
 PRÁCTICA DAR
 
-Inicializar un proyecto nuevo desde cero
-Entra en la carpeta: cd "ruta\de\tu\carpeta"
+---
 
-Inicializa: git init
 
-Conecta con GitHub: git remote add origin https://github.com/TU_USUARIO/NOMBRE_REPO.git
+### Inicializar un proyecto nuevo desde cero
 
-Crea la rama principal: git branch -M main
+1. **Entra en la carpeta:** `cd "ruta\de\tu\carpeta"`
+2. **Inicializa:** `git init`
+3. **Conecta con GitHub:** `git remote add origin https://github.com/TU_USUARIO/NOMBRE_REPO.git`
+4. **Crea la rama principal:** `git branch -M main`
 
-Añadir, confirmar y subir archivos iniciales
-Bash
+### Añadir, confirmar y subir archivos iniciales
+```bash
 git add .
 git commit -m "Primer commit"
 git push -u origin main
-Si vas a empezar a trabajar después de un tiempo (para actualizar tu PC)
-Bash
+
+```
+### Sactualizar el PC
+```bash
 git pull origin main --rebase
-Cuando termines de programar o modificar archivos
-1. Añadir todo lo nuevo:
 
-Bash
+```
+### Al terminar de programar o modificar archivos
+**1. Añadir todo lo nuevo:**
+
+```bash
 git add .
-2. Guardar el "paquete":
 
-Bash
+```
+
+**2. Guardar el "paquete":**
+
+```bash
 git commit -m "Descripción de lo que has hecho"
-3. Subir a la nube:
 
-Bash
+```
+
+**3. Subir a la nube:**
+
+```bash
 git push origin main
+
+```
+
+---
+
