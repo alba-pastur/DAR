@@ -1,6 +1,7 @@
 # DAR
 PRÁCTICA DAR
 
+SUBIR ARCHIVOS
 ### 1. Inicializa el repositorio
 En la terminal de VS Code (asegúrate de estar dentro de `C:\Users\albap\OneDrive\Escritorio\DAR proyecto`), escribe:
 ```bash
