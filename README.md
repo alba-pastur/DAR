@@ -97,9 +97,11 @@ ALPHA = %x41-5A / %x61-7A
 DIGIT = %x30-39
 VCHAR = %x21-7E
 
+```
+
 ---
 
-## 2. Máquina de Estados del Servidor (Por Cliente)
+### 2. Máquina de Estados del Servidor (Por Cliente)
 stateDiagram-v2
     [*] --> NO_AUTENTICADO : Conexión aceptada
     NO_AUTENTICADO --> NO_AUTENTICADO : REGISTER (Crea usuario)
@@ -115,6 +117,8 @@ stateDiagram-v2
     EN_SALA --> [*] : QUIT / Desconexión
 
 
+---
+## 3.Diagrama de Secuencia (Flujo Nominal)
 sequenceDiagram
     participant C1 as Cliente 1 (Admin)
     participant S as Servidor
@@ -137,6 +141,9 @@ sequenceDiagram
     S-->>C1: EVT_MSG general pepe Hola jefe\r\n
     S-->>C2: RES_OK MSG_SEND\r\n
 
+---
+
+## 4. Gestión de Errores y Códigos de Respuesta
 Código,Significado,Escenario de disparo
 400,Bad Request,"Operación no válida (ej. Unirse a una sala en la que ya estás, parámetros mal formados)."
 401,Unauthorized,Contraseña incorrecta al hacer LOGIN o intento de usar comandos sin estar autenticado.
