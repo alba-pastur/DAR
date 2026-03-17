@@ -1,206 +1,251 @@
 import socket
 import threading
+import os
 
 # --- CONFIGURACIÓN DEL SERVIDOR ---
-HOST = '0.0.0.0'  # Escucha en todas las interfaces de red
-PORT = 8080       # Puerto donde escuchará el servidor
+HOST = '0.0.0.0'
+PORT = 8080
 
 # --- ESTADO GLOBAL DEL SERVIDOR ---
-# Diccionario para mapear: socket_cliente -> nombre_usuario
+# Diccionario de base de datos de usuarios (Usuario -> Contraseña)
+# Ya metemos al admin por defecto para cumplir con tu requisito
+usuarios_registrados = {"admin": "admin"} 
+
+# Diccionario de conexiones activas (Socket -> Usuario)
 usuarios_conectados = {}  
 
-# Diccionario para gestionar las salas: nombre_sala -> lista_de_sockets
+# Diccionario de salas (Nombre de sala -> Lista de sockets)
 salas = {} 
 
-# Candado (Lock) para evitar problemas de concurrencia al modificar los diccionarios
 estado_lock = threading.Lock() 
 
 
 def manejar_cliente(conn, addr):
-    """
-    Función que se ejecuta en un Hilo independiente por cada cliente conectado.
-    Gestiona la recepción de mensajes, el buffer y la lógica del protocolo.
-    """
     print(f"[+] Nueva conexión desde {addr}")
     buffer = ""
     
     try:
         while True:
-            # 1. RECIBIR DATOS (Gestión explícita de Sockets)
             data = conn.recv(1024)
             if not data:
-                # Si recv() devuelve vacío, el cliente se ha desconectado (Cierre ordenado TCP)
                 break 
             
-            # 2. GESTIÓN DE BUFFERS Y DELIMITACIÓN (Requisito clave de la rúbrica)
-            # Decodificamos y añadimos al buffer. Usamos '\n' como delimitador de mensaje.
             buffer += data.decode('utf-8')
             
-            while '\n' in buffer:
-                # Extraemos un mensaje completo hasta el salto de línea
-                mensaje, buffer = buffer.split('\n', 1)
+            # EL ABNF EXIGE CRLF (\r\n) COMO DELIMITADOR
+            while '\r\n' in buffer:
+                mensaje, buffer = buffer.split('\r\n', 1)
                 mensaje = mensaje.strip()
                 
                 if mensaje:
                     procesar_mensaje(conn, mensaje)
 
     except ConnectionResetError:
-        # 3. GESTIÓN DE DESCONEXIONES INESPERADAS (Caída de red, cierre forzoso)
         print(f"[-] Conexión perdida inesperadamente con {addr}")
     finally:
-        # 4. LIMPIEZA DE ESTADO GLOBAL AL DESCONECTAR
         desconectar_cliente(conn)
 
 
 def procesar_mensaje(conn, mensaje):
-    """
-    Lógica principal del protocolo de aplicación. 
-    Analiza el comando y ejecuta la acción correspondiente.
-    """
-    partes = mensaje.split(' ', 2) # Divide en máximo 3 partes: COMANDO ARG1 RESTO
+    # Separamos en máximo 3 partes (COMANDO, ARG1, RESTO_DEL_TEXTO)
+    partes = mensaje.split(' ', 2) 
     comando = partes[0].upper()
 
-    with estado_lock: # Bloqueamos el estado global mientras lo modificamos
+    with estado_lock:
         
-        # --- REGISTRO DE USUARIO ---
-        if comando == "NICK" and len(partes) >= 2:
-            nick = partes[1]
-            if nick in usuarios_conectados.values():
-                conn.sendall(b"ERR_NICK_DUPLICADO\n") # Rechazo estructurado
+        # -----------------------------------------------------------
+        # 1. REGISTRO Y LOGIN (Requisitos de tu ABNF)
+        # -----------------------------------------------------------
+        if comando == "REGISTER" and len(partes) == 3:
+            username = partes[1]
+            password = partes[2]
+            
+            if username in usuarios_registrados:
+                conn.sendall(b"RES_ERR 409 El usuario ya existe\r\n")
             else:
-                usuarios_conectados[conn] = nick
-                conn.sendall(b"OK_NICK_ACEPTADO\n")
-        
-        # (A partir de aquí, exigimos que el usuario esté registrado)
+                usuarios_registrados[username] = password
+                conn.sendall(b"RES_OK REGISTER\r\n")
+
+        elif comando == "LOGIN" and len(partes) == 3:
+            username = partes[1]
+            password = partes[2]
+            
+            if username not in usuarios_registrados:
+                conn.sendall(b"RES_ERR 404 Usuario no encontrado\r\n")
+            elif usuarios_registrados[username] != password:
+                conn.sendall(b"RES_ERR 401 Contrasena incorrecta\r\n")
+            elif username in usuarios_conectados.values():
+                conn.sendall(b"RES_ERR 403 El usuario ya esta conectado\r\n")
+            else:
+                usuarios_conectados[conn] = username
+                conn.sendall(b"RES_OK LOGIN\r\n")
+
+        # -----------------------------------------------------------
+        # PROTECCIÓN: Si no estás logueado, no pasas de aquí
+        # -----------------------------------------------------------
         elif conn not in usuarios_conectados:
-            conn.sendall(b"ERR_NO_REGISTRADO\n")
+            if comando == "QUIT":
+                conn.sendall(b"RES_OK QUIT\r\n")
+                # Se cerrará en el finally del hilo
+            else:
+                conn.sendall(b"RES_ERR 401 No autenticado. Usa LOGIN o REGISTER primero\r\n")
             return
 
-        # --- CREACIÓN DE SALAS ---
-        elif comando == "CREATE" and len(partes) >= 2:
-            nombre_sala = partes[1]
-            if nombre_sala in salas:
-                conn.sendall(b"ERR_SALA_EXISTE\n")
+        # -----------------------------------------------------------
+        # 2. GESTIÓN DE SALAS Y MENSAJES (El núcleo del ABNF)
+        # -----------------------------------------------------------
+        elif comando == "ROOM_CREATE" and len(partes) >= 2:
+            roomname = partes[1]
+            if roomname in salas:
+                conn.sendall(b"RES_ERR 409 La sala ya existe\r\n")
             else:
-                salas[nombre_sala] = []
-                conn.sendall(b"OK_SALA_CREADA\n")
+                salas[roomname] = []
+                conn.sendall(b"RES_OK ROOM_CREATE\r\n")
 
-        # --- UNIÓN A SALA EXISTENTE ---
-        elif comando == "JOIN" and len(partes) >= 2:
-            nombre_sala = partes[1]
-            if nombre_sala not in salas:
-                conn.sendall(b"ERR_SALA_NO_EXISTE\n")
-            else:
-                if conn not in salas[nombre_sala]:
-                    salas[nombre_sala].append(conn)
-                    conn.sendall(b"OK_UNIDO\n")
-                    # Notificación automática a la sala
-                    nick = usuarios_conectados[conn]
-                    notificar_sala(nombre_sala, f"SYS {nick} ha entrado a la sala.\n")
+        elif comando == "ROOM_DELETE" and len(partes) >= 2:
+            roomname = partes[1]
+            # Solo permitimos borrar salas al admin
+            if usuarios_conectados[conn] == "admin":
+                if roomname in salas:
+                    # Echamos a todos de la sala antes de borrarla
+                    notificar_sala(roomname, f"EVT_ROOM_UPDATE {roomname} LEAVE ALL\r\n")
+                    del salas[roomname]
+                    conn.sendall(b"RES_OK ROOM_DELETE\r\n")
                 else:
-                    conn.sendall(b"ERR_YA_ESTAS_EN_SALA\n")
+                    conn.sendall(b"RES_ERR 404 La sala no existe\r\n")
+            else:
+                conn.sendall(b"RES_ERR 403 Solo el administrador puede borrar salas\r\n")
 
-        # --- ENVÍO DE MENSAJES A UNA SALA ---
-        elif comando == "MSG" and len(partes) == 3:
-            nombre_sala = partes[1]
+        elif comando == "ROOM_JOIN" and len(partes) >= 2:
+            roomname = partes[1]
+            if roomname not in salas:
+                conn.sendall(b"RES_ERR 404 La sala no existe\r\n")
+            else:
+                if conn not in salas[roomname]:
+                    salas[roomname].append(conn)
+                    conn.sendall(b"RES_OK ROOM_JOIN\r\n")
+                    nick = usuarios_conectados[conn]
+                    notificar_sala(roomname, f"EVT_ROOM_UPDATE {roomname} JOIN {nick}\r\n", excluyendo=conn)
+                else:
+                    conn.sendall(b"RES_ERR 400 Ya estas en esta sala\r\n")
+
+        elif comando == "MSG_SEND" and len(partes) == 3:
+            roomname = partes[1]
             texto = partes[2]
-            
-            if nombre_sala in salas and conn in salas[nombre_sala]:
+            if roomname in salas and conn in salas[roomname]:
                 nick = usuarios_conectados[conn]
-                mensaje_formateado = f"MSG_FROM {nombre_sala} {nick}: {texto}\n"
-                notificar_sala(nombre_sala, mensaje_formateado, excluyendo=conn)
-                conn.sendall(b"OK_MENSAJE_ENVIADO\n")
+                # ABNF: evt-msg = "EVT_MSG" SP roomname SP username SP text
+                mensaje_evt = f"EVT_MSG {roomname} {nick} {texto}\r\n"
+                notificar_sala(roomname, mensaje_evt, excluyendo=conn)
+                conn.sendall(b"RES_OK MSG_SEND\r\n")
             else:
-                conn.sendall(b"ERR_NO_ESTAS_EN_SALA\n")
-        
-        # --- ABANDONO DE SALA ---
-        elif comando == "LEAVE" and len(partes) >= 2:
-            nombre_sala = partes[1]
-            if nombre_sala in salas and conn in salas[nombre_sala]:
-                salas[nombre_sala].remove(conn)
-                conn.sendall(b"OK_SALA_ABANDONADA\n")
-                nick = usuarios_conectados[conn]
-                notificar_sala(nombre_sala, f"SYS {nick} ha abandonado la sala.\n")
-            else:
-                conn.sendall(b"ERR_NO_ESTAS_EN_SALA\n")
+                conn.sendall(b"RES_ERR 403 No estas en la sala o no existe\r\n")
 
-        # --- LISTADO DE USUARIOS ---
-        elif comando == "USERS" and len(partes) >= 2:
-            nombre_sala = partes[1]
-            if nombre_sala in salas:
-                usuarios_en_sala = [usuarios_conectados[c] for c in salas[nombre_sala]]
-                lista_str = ",".join(usuarios_en_sala)
-                respuesta = f"LIST_USERS {nombre_sala} {lista_str}\n"
-                conn.sendall(respuesta.encode('utf-8'))
+        elif comando == "ROOM_LEAVE" and len(partes) >= 2:
+            roomname = partes[1]
+            if roomname in salas and conn in salas[roomname]:
+                salas[roomname].remove(conn)
+                conn.sendall(b"RES_OK ROOM_LEAVE\r\n")
+                nick = usuarios_conectados[conn]
+                notificar_sala(roomname, f"EVT_ROOM_UPDATE {roomname} LEAVE {nick}\r\n")
             else:
-                conn.sendall(b"ERR_SALA_NO_EXISTE\n")
+                conn.sendall(b"RES_ERR 403 No estas en esta sala\r\n")
+
+        elif comando == "GET_USERS" and len(partes) >= 2:
+            roomname = partes[1]
+            if roomname in salas:
+                usuarios_en_sala = [usuarios_conectados[c] for c in salas[roomname]]
+                lista_str = " ".join(usuarios_en_sala) # Separado por espacios según ABNF
+                respuesta = f"RES_USER_LIST {roomname} {lista_str}\r\n"
+                conn.sendall(respuesta.encode('utf-8'))
+                conn.sendall(b"RES_OK GET_USERS\r\n")
+            else:
+                conn.sendall(b"RES_ERR 404 La sala no existe\r\n")
+
+        elif comando == "QUIT":
+            conn.sendall(b"RES_OK QUIT\r\n")
+            # Forzamos desconexión llamando a la función
+            desconectar_cliente(conn)
+
+        elif comando == "SHUTDOWN":
+            if usuarios_conectados.get(conn) == "admin":
+                print("\n[*] El admin ha ordenado apagar el servidor de forma remota.")
+                os._exit(0)
+            else:
+                conn.sendall(b"RES_ERR 403 No tienes permisos\r\n")
 
         else:
-            conn.sendall(b"ERR_COMANDO_INVALIDO\n")
+            conn.sendall(b"RES_ERR 400 Comando invalido o parametros incorrectos\r\n")
 
 
 def notificar_sala(nombre_sala, mensaje, excluyendo=None):
-    """
-    Función auxiliar para distribuir mensajes exclusivamente a los miembros válidos.
-    """
     for socket_cliente in salas.get(nombre_sala, []):
         if socket_cliente != excluyendo:
             try:
                 socket_cliente.sendall(mensaje.encode('utf-8'))
             except:
-                pass # Si falla el envío, se limpiará luego cuando el hilo lo detecte
+                pass
 
 
 def desconectar_cliente(conn):
-    """
-    Limpia el rastro de un cliente en los diccionarios de estado cuando se va.
-    """
     with estado_lock:
-        nick = usuarios_conectados.get(conn, "Usuario_Desconocido")
-        # Lo eliminamos de todas las salas en las que estuviera
-        for nombre_sala, lista_sockets in salas.items():
+        nick = usuarios_conectados.get(conn, None)
+        
+        for roomname, lista_sockets in salas.items():
             if conn in lista_sockets:
                 lista_sockets.remove(conn)
-                notificar_sala(nombre_sala, f"SYS {nick} se ha desconectado del servidor.\n")
+                if nick:
+                    notificar_sala(roomname, f"EVT_ROOM_UPDATE {roomname} LEAVE {nick}\r\n")
         
-        # Lo eliminamos del registro global
         if conn in usuarios_conectados:
             del usuarios_conectados[conn]
             
         try:
-            conn.close() # Cierre ordenado de los recursos (Requisito de la rúbrica)
+            conn.close()
         except:
             pass
-        print(f"[-] {nick} eliminado del sistema.")
+        if nick:
+            print(f"[-] {nick} desconectado.")
+
+
+# --- CONSOLA PARA APAGAR EL SERVIDOR DESDE LA PANTALLA ---
+def consola_servidor(servidor):
+    print("\n[INFO] Escribe 'cerrar' en cualquier momento para apagar el servidor.\n")
+    while True:
+        comando = input()
+        if comando.strip().lower() == 'cerrar':
+            print("\n[*] Apagando el servidor localmente...")
+            try:
+                servidor.close()
+            except:
+                pass
+            os._exit(0)
 
 
 def iniciar_servidor():
-    # 1. SOCKET(): Crear socket TCP/IP
     servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    servidor.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # Evita el error "Puerto en uso"
-    
-    # 2. BIND(): Unir a la IP y Puerto
+    servidor.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     servidor.bind((HOST, PORT))
-    
-    # 3. LISTEN(): Poner en modo escucha
     servidor.listen()
-    print(f"[*] Servidor de chat escuchando en el puerto {PORT}...")
+    print(f"[*] Servidor ABNF escuchando en el puerto {PORT}...")
+    
+    hilo_teclado = threading.Thread(target=consola_servidor, args=(servidor,))
+    hilo_teclado.daemon = True
+    hilo_teclado.start()
     
     try:
         while True:
-            # 4. ACCEPT(): Espera bloqueante hasta que un cliente se conecta
             conn, addr = servidor.accept()
-            
-            # CONCURRENCIA: Delegamos el cliente a un nuevo Hilo
             hilo = threading.Thread(target=manejar_cliente, args=(conn, addr))
             hilo.daemon = True
             hilo.start()
             
+    except OSError:
+        pass
     except KeyboardInterrupt:
-        print("\n[*] Apagando servidor...")
+        print("\n[*] Apagando servidor mediante teclado (Ctrl+C)...")
     finally:
         servidor.close()
-
 
 if __name__ == "__main__":
     iniciar_servidor()
