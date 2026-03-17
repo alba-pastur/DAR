@@ -102,7 +102,9 @@ VCHAR = %x21-7E
 ---
 
 ### 2. Máquina de Estados del Servidor (Por Cliente)
+
 stateDiagram-v2
+```abnf
     [*] --> NO_AUTENTICADO : Conexión aceptada
     NO_AUTENTICADO --> NO_AUTENTICADO : REGISTER (Crea usuario)
     NO_AUTENTICADO --> AUTENTICADO : LOGIN (Credenciales OK)
@@ -116,10 +118,11 @@ stateDiagram-v2
     EN_SALA --> AUTENTICADO : ROOM_LEAVE
     EN_SALA --> [*] : QUIT / Desconexión
 
-
+```
 ---
 ## 3.Diagrama de Secuencia (Flujo Nominal)
 sequenceDiagram
+```abnf
     participant C1 as Cliente 1 (Admin)
     participant S as Servidor
     participant C2 as Cliente 2 (Pepe)
@@ -140,10 +143,11 @@ sequenceDiagram
     C2->>S: MSG_SEND general Hola jefe\r\n
     S-->>C1: EVT_MSG general pepe Hola jefe\r\n
     S-->>C2: RES_OK MSG_SEND\r\n
-
+```
 ---
 
 ## 4. Gestión de Errores y Códigos de Respuesta
+```abnf
 Código,Significado,Escenario de disparo
 400,Bad Request,"Operación no válida (ej. Unirse a una sala en la que ya estás, parámetros mal formados)."
 401,Unauthorized,Contraseña incorrecta al hacer LOGIN o intento de usar comandos sin estar autenticado.
