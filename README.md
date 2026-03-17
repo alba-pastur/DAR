@@ -97,6 +97,7 @@ ALPHA = %x41-5A / %x61-7A
 DIGIT = %x30-39
 VCHAR = %x21-7E
 
+---
 
 ## 2. Máquina de Estados del Servidor (Por Cliente)
 stateDiagram-v2
@@ -112,6 +113,7 @@ stateDiagram-v2
     EN_SALA --> EN_SALA : MSG_SEND / GET_USERS
     EN_SALA --> AUTENTICADO : ROOM_LEAVE
     EN_SALA --> [*] : QUIT / Desconexión
+
 
 sequenceDiagram
     participant C1 as Cliente 1 (Admin)
