@@ -49,9 +49,6 @@ git push origin main
 
 # Práctica: Protocolo de Chat Multiusuario con Salas
 
-**Asignatura:** [Nombre de tu asignatura]  
-**Autores:** [Vuestros nombres]
-
 Este repositorio contiene la especificación formal y la implementación de un protocolo de chat multiusuario en arquitectura Cliente-Servidor mediante Sockets TCP, cumpliendo con los requisitos de la práctica.
 
 ---
@@ -101,6 +98,7 @@ DIGIT = %x30-39
 VCHAR = %x21-7E
 
 
+## 2. Máquina de Estados del Servidor (Por Cliente)
 stateDiagram-v2
     [*] --> NO_AUTENTICADO : Conexión aceptada
     NO_AUTENTICADO --> NO_AUTENTICADO : REGISTER (Crea usuario)
