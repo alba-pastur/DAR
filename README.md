@@ -18,7 +18,7 @@ git commit -m "Primer commit"
 git push -u origin main
 
 ```
-### Sactualizar el PC
+### Actualizar el PC
 ```bash
 git pull origin main --rebase
 
