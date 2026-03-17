@@ -103,8 +103,8 @@ VCHAR = %x21-7E
 
 ### 2. Máquina de Estados del Servidor (Por Cliente)
 
-stateDiagram-v2
 ```abnf
+stateDiagram-v2
     [*] --> NO_AUTENTICADO : Conexión aceptada
     NO_AUTENTICADO --> NO_AUTENTICADO : REGISTER (Crea usuario)
     NO_AUTENTICADO --> AUTENTICADO : LOGIN (Credenciales OK)
@@ -121,8 +121,9 @@ stateDiagram-v2
 ```
 ---
 ## 3.Diagrama de Secuencia (Flujo Nominal)
-sequenceDiagram
+
 ```abnf
+sequenceDiagram
     participant C1 as Cliente 1 (Admin)
     participant S as Servidor
     participant C2 as Cliente 2 (Pepe)
