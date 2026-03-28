@@ -45,6 +45,27 @@ git push origin main
 
 ```
 
+CADA VEZ QUE QUERAMOS ACTUALIZAR ALGO:
+
+**1. Descargamos lo último de GitHub**
+```cmd
+git pull origin main --no-edit
+```
+
+**2. Preparamos todos los archivos:**
+```cmd
+git add .
+```
+
+**3. Creamos el paquete: ejemplo: subimos una captura de wireshark**
+```cmd
+git commit -m "Añadida captura de tráfico .pcap demostrando el protocolo"
+```
+
+**4. Lo subimos todo**
+```cmd
+git push
+```
 ---
 
 # Práctica: Protocolo de Chat Multiusuario con Salas
@@ -160,25 +181,5 @@ Código,Significado,Escenario de disparo
 
 
 ```
-CADA VEZ QUE QUERAMOS ACTUALIZAR ALGO:
 
-**1. Descargamos lo último de GitHub**
-```cmd
-git pull origin main --no-edit
-```
-
-**2. Preparamos todos los archivos:**
-```cmd
-git add .
-```
-
-**3. Creamos el paquete: ejemplo: subimos una captura de wireshark**
-```cmd
-git commit -m "Añadida captura de tráfico .pcap demostrando el protocolo"
-```
-
-**4. Lo subimos todo**
-```cmd
-git push
-```
 
