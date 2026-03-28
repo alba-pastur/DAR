@@ -20,7 +20,7 @@ git push -u origin main
 ```
 
 ---
-CADA VEZ QUE QUERAMOS ACTUALIZAR ALGO:
+CADA VEZ QUE QUERAMOS "ACTUALIZAR" ALGO:
 
 **1. Descargamos lo último de GitHub**
 ```cmd
