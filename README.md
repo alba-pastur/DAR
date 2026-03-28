@@ -155,3 +155,30 @@ Código,Significado,Escenario de disparo
 403,Forbidden,"Permisos insuficientes (ej. Borrar sala sin ser admin, enviar mensaje a sala donde no estás)."
 404,Not Found,"Entidad inexistente (ej. Hacer LOGIN con usuario no registrado, unirse a sala borrada)."
 409,Conflict,"Duplicidad (ej. Registrar usuario que ya existe, crear sala que ya existe)."
+
+
+
+
+```
+CADA VEZ QUE QUERAMOS ACTUALIZAR ALGO:
+
+**1. Descargamos lo último de GitHub**
+```cmd
+git pull origin main --no-edit
+```
+
+**2. Preparamos todos los archivos:**
+```cmd
+git add .
+```
+
+**3. Creamos el paquete: ejemplo: subimos una captura de wireshark**
+```cmd
+git commit -m "Añadida captura de tráfico .pcap demostrando el protocolo"
+```
+
+**4. Lo subimos todo**
+```cmd
+git push
+```
+
