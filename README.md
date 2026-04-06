@@ -153,8 +153,8 @@ Código,Significado,Escenario de disparo
 409,Conflict,"Duplicidad (ej. Registrar usuario que ya existe, crear sala que ya existe)."
 
 
-
-
 ```
+## 5. Captura de Tráfico Wireshark
+En el repositorio se incluye el archivo `captura.pcap` que demuestra el funcionamiento real del protocolo. El escenario capturado muestra a dos clientes (uno de ellos Administrador) interactuando en la dirección local. Se evidencia el proceso de LOGIN, la creación y unión a la sala 'general', el envío de un MSG_SEND y el cierre de conexión.
 
 
