@@ -49,4 +49,5 @@ Sustituye la IP por la del servidor.
 | 0 | Desconectarse |
 
 ## Captura Wireshark
+(en el pdf entregado)
 Filtro recomendado: `rmi` o `tcp.port == 1099`
